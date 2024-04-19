@@ -3,3 +3,7 @@
 *.json
 *.csv
 *.ipynb
+
+!/logs
+!/config
+!/plugins
