@@ -1,4 +1,5 @@
-.env
+/dags/.env
+/logs/*
 *.json
 *.csv
 *.ipynb
