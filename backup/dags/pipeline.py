@@ -13,13 +13,12 @@ def api_data_extract(start_date):
     
     api_key = os.getenv("API_KEY")
     
+    
     # Extracts data from the api
     if start_date != None:
-        print('dentro do if')
         api_data = requests.get(f"https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={start_date}&api_key={api_key}")
     # Quick fix for DAG Import Error when date value is "None" during Airflow validation
     else:
-        print('dentro do else')
         start_date = '2024-04-07'
         api_data = requests.get(f"https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={start_date}&api_key={api_key}")
     
@@ -151,7 +150,7 @@ def clean_transform_data_main_df(df):
     df.drop(['neo_reference_id', 'nasa_url', 'link_self', 'close_approach_data', 'close_approach_date_2', 'sentry_data', 'epoch_date_close_approach' ,'estimated_diameter_min_km',
              'estimated_diameter_max_km', 'estimated_diameter_meters_min', 'estimated_diameter_meters_max','estimated_diameter_miles_min', 'estimated_diameter_miles_max',
              'estimated_diameter_feet_min', 'estimated_diameter_feet_max', 'relative_velocity_km_per_sec', 'relative_velocity_km_per_hour', 'relative_velocity_miles_per_hour',
-             'miss_distance_astronomical', 'miss_distance_lunar', 'miss_distance_kilometers', 'miss_distance_miles'], axis=1, inplace=True, errors='ignore')
+             'miss_distance_astronomical', 'miss_distance_lunar', 'miss_distance_kilometers', 'miss_distance_miles'], axis=1, inplace=True)
       
     return [df, df_links, df_estimated_size, df_relative_velocity]
 
@@ -173,17 +172,16 @@ def database_connection():
 
 def exec(**kwargs):
     engine = database_connection()
-    date = kwargs.get('logical_date')
+    print(kwargs)
+    date = kwargs.get('date')
     print(date)
-    
     df = api_data_extract(date)
 
     df = df_rename_columns(df)
 
     [df, df_links, df_estimated_size, df_relative_velocity] = clean_transform_data_main_df(df)
 
-    if date != None:
-        load_to_database(df, df_links, df_estimated_size, df_relative_velocity, engine)
+    load_to_database(df, df_links, df_estimated_size, df_relative_velocity, engine)
     
     #df.to_csv('data.csv', index=False)
     #df_links.to_csv('links.csv', index=False)

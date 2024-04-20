@@ -23,13 +23,13 @@ default_args = {
 dag = DAG('dag_pipeline_nasa',
           default_args = default_args,
           description = 'Pipeline ETL using Nasa API',
-          schedule = '@daily',
+          schedule_interval = '@daily',
 )
 
 
-execute_etl = PythonOperator(task_id = 'etl_nasa_api_script',
+execute_etl = PythonOperator(task_id = 'etl_python_script',
                              python_callable = exec,
-                             op_kwargs={'logical_date': '{{ ds }}'},
+                             op_kwargs={"date": '2024-04-12'},
                              dag = dag
 )                           
 
