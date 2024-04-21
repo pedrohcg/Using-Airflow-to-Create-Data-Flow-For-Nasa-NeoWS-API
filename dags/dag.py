@@ -22,7 +22,7 @@ default_args = {
 
 dag = DAG('dag_pipeline_nasa',
           default_args = default_args,
-          description = 'Pipeline ETL using Nasa API',
+          description = 'Pipeline ETL using NASA API',
           schedule = '@daily',
 )
 
