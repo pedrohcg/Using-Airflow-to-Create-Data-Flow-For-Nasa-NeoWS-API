@@ -18,19 +18,22 @@ def api_data_extract(start_date):
     byte = api_data.content.decode().replace("'", '"')
     
     data = json.loads(byte)
-
-    current_date = data['near_earth_objects'][start_date]
     
-    # Normalizes the current_date json and transforms into a dataframe
-    current_date_normalized = pd.json_normalize(current_date)
+    current_date = data['near_earth_objects'].get(start_date)
     
-    # Normalizes the close_approach_data list inside current_date json and transforms it into a dataframe
-    close_approach_data_normalized = pd.json_normalize(current_date, record_path=["close_approach_data"])
-    
-    # concats both dataframes
-    df_concat = pd.concat([current_date_normalized, close_approach_data_normalized], axis=1)
-    
-    return df_concat
+    if current_date != None:
+        # Normalizes the current_date json and transforms into a dataframe
+        current_date_normalized = pd.json_normalize(current_date)
+        
+        # Normalizes the close_approach_data list inside current_date json and transforms it into a dataframe
+        close_approach_data_normalized = pd.json_normalize(current_date, record_path=["close_approach_data"])
+        
+        # concats both dataframes
+        df_concat = pd.concat([current_date_normalized, close_approach_data_normalized], axis=1)
+        
+        return df_concat
+    else:
+        return pd.DataFrame()
 
 def df_rename_columns(df):
     
@@ -56,7 +59,7 @@ def df_rename_columns(df):
                         'miss_distance.lunar':'miss_distance_lunar',
                         'miss_distance.kilometers':'miss_distance_kilometers',
                         'miss_distance.miles':'miss_distance_miles'
-            }, inplace=True)
+            }, inplace=True, errors='ignore')
     
     return df
 
@@ -92,7 +95,36 @@ def miss_distance_df(df):
     df_miss_distance = pd.DataFrame()
     
     df_miss_distance[['id', 'miss_distance_astronomical', 'miss_distance_lunar', 'miss_distance_kilometers', 'miss_distance_miles']] = df[['id', 'miss_distance_astronomical', 'miss_distance_lunar', 'miss_distance_kilometers', 'miss_distance_miles']]
+
+    return df_miss_distance
+
+def remove_dirty_data(s):
+    return s.split('.')[0]
+
+# Creates a new dataframe with sentry data
+def sentry_df(df):
+    df_sentry = pd.DataFrame()
+
+    # iterates by all ids and inserts the data from the API into the dataframe
+    for id in df['id'].astype('int'):
+        api_data = requests.get(f"https://ssd-api.jpl.nasa.gov/sentry.api?des={id}")
+        byte = api_data.content.decode().replace("'", '"')
+
+        data = json.loads(byte)
         
+        # Adds the asteroid id to the extracted dict
+        data['summary'].update({'id': id})
+        
+        df_sentry = pd.concat([df_sentry, pd.DataFrame(data['summary'], index=[0])])
+
+    df_sentry = df_sentry.reindex(columns=(['id', 'method', 'pdate', 'cdate', 'first_obs', 'last_obs', 'darc', 'mass', 'diameter', 'ip', 'n_imp', 'v_inf', 'ndop', 'energy', 'ndel', 'ps_cum', 'ps_max', 'ts_max', 'v_imp', 'nsat']))
+    
+    # Cleans first_obs and last_obs data that can have wrong values depending on the asteroid
+    df_sentry['first_obs'] = df_sentry['first_obs'].apply(remove_dirty_data)
+    df_sentry['last_obs'] = df_sentry['last_obs'].apply(remove_dirty_data)
+     
+    return df_sentry
+     
 # Creates the main dataframe
 def clean_transform_data_main_df(df):
     
@@ -105,6 +137,7 @@ def clean_transform_data_main_df(df):
     df_estimated_size = estimated_size_df(df)
     df_relative_velocity = relative_velocity_df(df)
     df_miss_distance = miss_distance_df(df)
+    df_sentry = sentry_df(df[df['is_sentry_object']])
     
     # Drops columns from dataframe
     df.drop(['neo_reference_id', 'nasa_url', 'link_self', 'close_approach_data', 'close_approach_date_2', 'sentry_data', 'epoch_date_close_approach' ,'estimated_diameter_min_km',
@@ -112,18 +145,21 @@ def clean_transform_data_main_df(df):
              'estimated_diameter_feet_min', 'estimated_diameter_feet_max', 'relative_velocity_km_per_sec', 'relative_velocity_km_per_hour', 'relative_velocity_miles_per_hour',
              'miss_distance_astronomical', 'miss_distance_lunar', 'miss_distance_kilometers', 'miss_distance_miles'], axis=1, inplace=True, errors='ignore')
       
-    return [df, df_estimated_size, df_relative_velocity, df_miss_distance]
+    return [df, df_estimated_size, df_relative_velocity, df_miss_distance, df_sentry]
 
-def load_to_database(df, df_estimated_size, df_relative_velocity, df_miss_distance, engine):
+def load_to_database(df, df_estimated_size, df_relative_velocity, df_miss_distance, df_sentry, engine):
     df.to_sql(name='space_objects', con=engine, if_exists='append', index=False)
     df_estimated_size.to_sql(name='estimated_size', con=engine, if_exists='append', index=False)
     df_relative_velocity.to_sql(name='relative_velocity', con=engine, if_exists='append', index=False)
     df_miss_distance.to_sql(name='miss_distance', con=engine, if_exists='append', index=False)
+    # Validation if any of the nearby asteroids are a sentry object
+    if df_sentry.empty == False:
+        df_sentry.to_sql(name='sentry_object', con=engine, if_exists='append', index=False)
 
 def database_connection():
     username="airflow_login"
     password="senha12345_"
-    host="172.24.0.8"
+    host="172.24.0.7"
     database="near_earth_objects"
     
     engine = create_engine(f"mssql+pyodbc://{username}:{password}@{host}/{database}?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes")
@@ -138,15 +174,12 @@ def exec(**kwargs):
     if date != None:
         df = api_data_extract(date)
 
-        df = df_rename_columns(df)
+        # Validation if in the day of execution there is any data to process
+        if df.empty == False:
+            df = df_rename_columns(df)
 
-        [df, df_estimated_size, df_relative_velocity, df_miss_distance] = clean_transform_data_main_df(df)
+            [df, df_estimated_size, df_relative_velocity, df_miss_distance, df_sentry] = clean_transform_data_main_df(df)
 
-        load_to_database(df, df_estimated_size, df_relative_velocity, df_miss_distance, engine)
-    
-    #df.to_csv('data.csv', index=False)
-    #df_links.to_csv('links.csv', index=False)
-    #df_estimated_size.to_csv('estimated_size.csv', index=False)
-    #df_relative_velocity.to_csv('relative_velocity.csv', index=False)
+            load_to_database(df, df_estimated_size, df_relative_velocity, df_miss_distance, df_sentry, engine)
 
 exec()
