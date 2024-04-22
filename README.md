@@ -171,4 +171,76 @@ http://localhost:8080/home
 
 - Habilitando a DAG vai fazer com que o Airflow comece a executar do dia 01/01/2023 até hoje.
 
+## Respostas Para as Questões Propostas
+
+### Qual foi o dia com a maior quantidade de asteroides passando perto da Terra?
+Para descobrirmos o dia que mais asteroides passaram próximos da Terra fazemos uma query simples onde usamos a função "count" e agrupamos pela data após converter a coluna datetime "close_approach_date" para data, a query usada foi a seguinte
+
+<p align="center">
+  <img src="./prints/query-1.png">
+</p>
+
+Como resultado podemos ver que, para os dados que temos no banco atualmente, o dia que tivemos a maior quantidade de asteroides passando próximo da Terra foi 6 de abril de 2023.
+
+<p align="center">
+  <img src="./prints/resp-1.png">
+</p>
+
+### Qual foi o asteroide que passou mais próximo da Terra?
+Para descobrirmos qual foi o asteroide que passou mais próximo da Terra vamos usar a coluna "miss_distance_kilometers" da tabela miss_distance e ordenamos o resultado, queremos encontrar qual asteroide registrado vai possuir a menor distância. Podemos fazer isso com a seguinte query:
+
+<p align="center">
+  <img src="./prints/query-2.png">
+</p>
+
+Com isso, é possível perceber que o asteroide que passou mais próximo foi o 1998 HH49 no dia 17/10/2023 a uma distância de aproximadamente 1173362 km ou 3 vezes a distância entre a Lua e a Terra.
+
+<p align="center">
+  <img src="./prints/resp-2.png">
+</p>
+
+### Qual foi o asteroide que passou próximo da Terra com a maior velocidade relativa?
+Para descobrir o asteroide que passou com a maior velocidade vamos fazer uma query que vai usar as tabelas "space_objects" e "relative_velocity" e ordenamos o resultado pelo campo "relative_velocity_km_per_hour". A query é a seguinte:
+
+<p align="center">
+  <img src="./prints/query-3.png">
+</p>
+
+Com o resultado é possível perceber que o asteroide com a maior velocidade é o 523630 2009 OG com uma velocidade relativa de aproximadamente 157512 km/h ou 44 km/s
+
+<p align="center">
+  <img src="./prints/resp-3.png">
+</p>
+
+### Qual é o asteroide com o maior tamanho estimado?
+Para descobrir qual é o asteroide com o maior tamanho precisamos usar as tabelas "space_objects", "estimated_size" e a view "estimated_diameter_range". A query abaixo vai retornar o nome do asteroide, seu intervalo de tamanho e ordernar o resultado pelo campo "estimated_diameter_max_km"
+
+<p align="center">
+  <img src="./prints/query-4.png">
+</p>
+
+Como podemos ver, estimamos que o maior asteroide que passou próximo da Terra nesse período foi o 2212 Hephaistos 1978 SB com um diâmetro estimado entre 5.28 e 11.8 km
+
+<p align="center">
+  <img src="./prints/resp-4.png">
+</p>
+
+### Qual é o asteroide que liberaria a maior quantidade de energia em megatons de TNT caso acertasse a Terra?
+Para determinar a quantidade de energia liberada pelo impacto de um asteroide vamos usar o campo "energy" da tabela "sentry_object". Selecionamos os dados de nome, se é ou não considerado perigoso pela NASA, a energia liberada e a equivalência energética quando comparamos com a energia liberada por uma Tsar Bomb, que é a bomba atômica mais poderosa já detonada pela humanidade.
+
+<p align="center">
+  <img src="./prints/query-5.png">
+</p>
+
+Como podemos ver, o asteroide 29075 1950 DA é considerado como perigoso pela nasa e um impacto com a Terra liberaria uma energia de 75190 megatons de TNT ou equivalente a detonação de aproximadamente 1319 Tsar Bombs, seguido pelo 101955 Bennu 1999 RQ36 que liberaria uma energia equivalente a 1421 megatons de TNT ou 25 Tsar Bombas. Em ambos os casos as consequências seriam desastrosas para a humanidade.
+
+<p align="center">
+  <img src="./prints/resp-5.png">
+</p>
+
 ## Conclusão
+Este projeto demonstra minhas habilidades e conhecimentos sobre o uso de diversas ferramentas fundamentais para o dia a dia de um engenheiro de dados como: Apache Airflow, Python, Pandas, SQL, SGBD (Microsoft SQL Server), extração de dados por API, lidar com a possibilidade de receber dados em formatos diferentes e tratá-los entre outras. 
+
+Diversos desafios foram enfrentados durante o desenvolvimento, o maior deles o de conseguir preparar a pipeline para suportar formatos de dados diferentes como, por exemplo, em um dia que não teve nenhum asteroide passando por perto da Terra é necessário validar se o json recebido da API não é vazio, ou quando em determinado dia um objeto considerado como "sentry" retorna informações a mais do que os que os outros.
+
+Ele também demonstra que eu sou capaz de desenvolver pipelines de dados, implementando técnicas de extração, limpeza, enriquecimento e transformação de dados. Além disso, também demonstra que sou capaz de fazer análise de dados básica com SQL.

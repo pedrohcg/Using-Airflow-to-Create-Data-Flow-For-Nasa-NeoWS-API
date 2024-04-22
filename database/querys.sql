@@ -34,3 +34,4 @@ END is_dangerous, energy, ROUND(energy/57, 2) tsar_bombs
 FROM space_objects so
 INNER JOIN sentry_object sto
 ON so.id = sto.id
+ORDER BY energy DESC
