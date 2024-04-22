@@ -56,11 +56,7 @@ O primeiro passo da transformação de dados é renomear as colunas pois como fo
   <img src="./prints/print2.png">
 </p>
 
-Com as colunas renomeadas vamos começar com a limpeza e transformação dos dados. Abaixo podemos ver o diagrama de dados da forma que foi extraído da API:
-
-img-do-diagrama-antes.png
-
-As transformações vão ser feitas na função clean_transform_data_main_df, o código completo pode ser visto na imagem abaixo:
+Com as colunas renomeadas vamos começar com a limpeza e transformação dos dados. As transformações vão ser feitas na função clean_transform_data_main_df, o código completo pode ser visto na imagem abaixo:
 
 <p align="center">
   <img src="./prints/print3.png">
